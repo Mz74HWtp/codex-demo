@@ -38,4 +38,12 @@ npm test
 
 APIキー、パスワード、secretはコードやGitに保存しないでください。`.env` などはGit管理対象から除外していますが、`.gitignore` だけで秘密情報の混入を防げるわけではありません。`.env.example` を作る場合はダミー値のみを使用してください。
 
+既存のCI（`.github/workflows/ci.yml`）は、Pull Requestと`main`へのpushでGitleaksによるSecret検知を実行します。取得した全ブランチ・タグのGit履歴を標準ルールで検査し、APIキー、Token、Password、秘密鍵などを検出すると終了コード1でCIを失敗させます。ログのSecret値はマスクします。削除済みファイルも履歴に残っていれば検査対象です。
+
+Gitleaks CLIはバージョンとSHA-256を固定し、ダウンロード後に検証します。更新時はworkflow内の`GITLEAKS_VERSION`と`GITLEAKS_SHA256`を公式リリースに合わせて更新してください。Action用のライセンスや追加のGitHub権限は不要で、既存の`npm test`と`npm audit`は独立したジョブで継続します。
+
+`test/gitleaks.test.js`は`node:test`で正常入力の成功、4種類のダミーSecretの検出・終了コード・ログのマスクを検証します。CIでは必ず実行し、ローカルの`npm test`では`GITLEAKS_BINARY`にGitleaks実行ファイルのパスを設定した場合に実行します。未設定の場合、この統合テストはスキップします。
+
+検知はパターンに基づくため、短いPasswordなどすべてのSecretを検知できるわけではありません。またCIはcommitやpush自体を防止しません。マージを防ぐにはリポジトリの保護ルールで`Secret scan`を必須チェックにしてください。実際のSecretが検出された場合は、該当の認証情報を失効・再発行してください。
+
 認証、TLS、レート制限は実装していません。外部公開する場合は公開範囲と必要な保護策を別途検討してください。
